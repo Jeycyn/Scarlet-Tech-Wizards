@@ -1,5 +1,5 @@
 "use client";
-import ParticlesBg from "./ParticlesBg";
+import ParticlesBg from "./ParticlesBg"; 
 
 export default function Hero() {
   return (
@@ -43,9 +43,6 @@ export default function Hero() {
 
         {/* REFINED CTA HIERARCHY */}
         <div className="mt-12 flex flex-col sm:flex-row items-center gap-6 justify-center animate-fadeInUp">
-          
-          
-
           <div className="flex gap-4">
             <a
               href="/archives"
@@ -61,7 +58,6 @@ export default function Hero() {
               Our Spells
             </a>
           </div>
-
         </div>
 
         {/* SCROLL CUE */}
