@@ -1,9 +1,27 @@
 "use client";
+import { useState, useEffect } from "react";
 import ParticlesBg from "./ParticlesBg";
+import Navbar from "@/components/Navbar";
 
 export default function Hero() {
+  const [showArtifactsButton, setShowArtifactsButton] = useState(false);
+
+  // Logic to detect scroll depth
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show button after scrolling 600px (roughly halfway through your long hero)
+      if (window.scrollY > 600) {
+        setShowArtifactsButton(true);
+      } else {
+        setShowArtifactsButton(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    // Changed h-screen to min-h-[130vh] and added vertical padding
     <section className="relative flex items-center justify-center min-h-[130vh] py-24 bg-[#050505] overflow-hidden">
       
       {/* Cinematic Overlays */}
@@ -61,12 +79,29 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* SCROLL CUE - Adjusted position for longer height */}
+        {/* SCROLL CUE */}
         <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-20 hidden md:block">
            <div className="w-[1px] h-24 bg-gradient-to-b from-white to-transparent" />
         </div>
-
       </div>
+
+      {/* FLOATING ARTIFACTS POPUP */}
+      <div 
+        className={`fixed bottom-8 right-8 z-[60] transition-all duration-500 transform ${
+          showArtifactsButton ? "translate-y-0 opacity-100 scale-100" : "translate-y-20 opacity-0 scale-90 pointer-events-none"
+        }`}
+      >
+        <a 
+          href="/archives"
+          className="group relative flex items-center gap-4 bg-white text-black p-2 pr-6 rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-red-600 hover:text-white transition-all"
+        >
+          <div className="h-10 w-10 bg-black rounded-full flex items-center justify-center text-white group-hover:bg-white group-hover:text-red-600 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM208,192H48V64H208Z"></path></svg>
+          </div>
+          View All Artifacts
+        </a>
+      </div>
+
     </section>
   );
 }

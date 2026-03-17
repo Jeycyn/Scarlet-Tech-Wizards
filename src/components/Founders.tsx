@@ -13,7 +13,7 @@ export default function Founder() {
     {
       name: "Bilha Warui",
       role: "Co-Founder & Chief Operations",
-      image: "bilha.jpg",
+      image: "bilha.png",
       bio: "Strategic mastermind specializing in operational precision and client-success ecosystems.",
       linkedin: "#",
       email: "mailto:info@scarlettechwizards.com",

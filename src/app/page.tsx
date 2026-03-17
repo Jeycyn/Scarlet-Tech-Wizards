@@ -1,3 +1,4 @@
+import Navbar from '@/components/Navbar'; // Add this import
 import Hero from '@/components/Hero';
 import Founder from '@/components/Founders';
 import About from '@/components/About';
@@ -11,6 +12,7 @@ import Footer from '@/components/Footer';
 export default function HomePage() {
   return (
     <>
+      <Navbar /> {/* Place it here */}
       <Hero />
       <Founder />
       <About />
