@@ -1,5 +1,14 @@
 export default function Reviews() {
   const reviews = [
+
+     { 
+    name: "Hon. George Innocent", 
+    role: "Member of County Assembly / Tech Advocate", 
+    text: "The digital infrastructure created by this team is a masterclass in scalability. They aren't just coding; they are building the future of our regional digital economy.", 
+    img: "Hon.Innocent.png", 
+    rating: 5
+  },
+
     { 
       name: "Veliswa T.", 
       role: "Founder, Fintech Startup", 

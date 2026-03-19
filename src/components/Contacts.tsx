@@ -40,7 +40,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Encrypted Line</p>
-                  <p className="text-white font-bold group-hover:text-yellow-400 transition-colors">+254 114 346186</p>
+                  <p className="text-white font-bold group-hover:text-yellow-400 transition-colors">0114 346186</p>
                 </div>
               </a>
             </div>
@@ -84,7 +84,7 @@ export default function Contact() {
                     Initiate Project
                   </button>
                   <p className="text-center text-[9px] text-gray-600 mt-6 uppercase tracking-widest font-bold">
-                    Average Response Time: <span className="text-white">4-6 Business Hours</span>
+                    Average Response Time: <span className="text-white">1-4 Business Hours</span>
                   </p>
                 </div>
               </form>
