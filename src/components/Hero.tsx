@@ -1,274 +1,423 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ParticlesBg from "@/components/ParticlesBg";
 
-const BOOT_LINES = [
-  "> SCARLET TECH WIZARDS // INITIALIZING...",
-  "> Loading neural design matrix...",
-  "> Calibrating digital alchemy engine...",
-  "> Mounting sovereign artifact library...",
-  "> All systems online. We build legends.",
-];
-
-const CYCLING_WORDS = [
-  "SOVEREIGNTY.",
-  "AUTHORITY.",
-  "LEGACY.",
-  "DOMINANCE.",
-  "THE FUTURE.",
-];
+const WORDS = ["SOVEREIGNTY.", "DIGITAL MAGIC.", "THE FUTURE.", "AUTHORITY.", "DOMINANCE."];
 
 export default function Hero() {
-  const [showArtifactsButton, setShowArtifactsButton] = useState(false);
-  const [booted, setBooted] = useState(false);
-  const [bootLines, setBootLines] = useState<string[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
+  const mouseRef = useRef({ x: 0.5, y: 0.5 });
+
+  const [showArtBtn, setShowArtBtn] = useState(false);
   const [wordIdx, setWordIdx] = useState(0);
   const [displayed, setDisplayed] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [glitch, setGlitch] = useState(false);
+  const [hudData, setHudData] = useState({ net: 94, perf: 99, phase: 78, deploy: 91 });
 
-  // ── SCROLL LISTENER ──
+  // Scroll
   useEffect(() => {
-    const fn = () => setShowArtifactsButton(window.scrollY > 600);
+    const fn = () => setShowArtBtn(window.scrollY > 600);
     window.addEventListener("scroll", fn);
     return () => window.removeEventListener("scroll", fn);
   }, []);
 
-  // ── BOOT SEQUENCE ──
+  // Typewriter
   useEffect(() => {
-    let i = 0;
+    const word = WORDS[wordIdx];
+    let t: ReturnType<typeof setTimeout>;
+    if (!deleting && displayed.length < word.length) {
+      t = setTimeout(() => setDisplayed(word.slice(0, displayed.length + 1)), 70);
+    } else if (!deleting && displayed.length === word.length) {
+      t = setTimeout(() => setDeleting(true), 2200);
+    } else if (deleting && displayed.length > 0) {
+      t = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 38);
+    } else {
+      setDeleting(false);
+      setWordIdx((p) => (p + 1) % WORDS.length);
+    }
+    return () => clearTimeout(t);
+  }, [displayed, deleting, wordIdx]);
+
+  // Glitch
+  useEffect(() => {
     const iv = setInterval(() => {
-      if (i < BOOT_LINES.length) {
-        setBootLines((prev) => [...prev, BOOT_LINES[i]]);
-        i++;
-      } else {
-        clearInterval(iv);
-        setTimeout(() => setBooted(true), 500);
-      }
-    }, 300);
+      setGlitch(true);
+      setTimeout(() => setGlitch(false), 350);
+    }, 4500 + Math.random() * 3000);
     return () => clearInterval(iv);
   }, []);
 
-  // ── TYPEWRITER WORD CYCLE ──
+  // Live HUD data
   useEffect(() => {
-    if (!booted) return;
-    const word = CYCLING_WORDS[wordIdx];
-    let timeout: ReturnType<typeof setTimeout>;
+    const iv = setInterval(() => {
+      setHudData({
+        net: Math.floor(88 + Math.random() * 10),
+        perf: Math.floor(96 + Math.random() * 4),
+        phase: Math.floor(70 + Math.random() * 20),
+        deploy: Math.floor(85 + Math.random() * 12),
+      });
+    }, 1800);
+    return () => clearInterval(iv);
+  }, []);
 
-    if (!deleting && displayed.length < word.length) {
-      timeout = setTimeout(() => setDisplayed(word.slice(0, displayed.length + 1)), 75);
-    } else if (!deleting && displayed.length === word.length) {
-      timeout = setTimeout(() => setDeleting(true), 2000);
-    } else if (deleting && displayed.length > 0) {
-      timeout = setTimeout(() => setDisplayed(displayed.slice(0, -1)), 40);
-    } else if (deleting && displayed.length === 0) {
-      setDeleting(false);
-      setWordIdx((prev) => (prev + 1) % CYCLING_WORDS.length);
-    }
-    return () => clearTimeout(timeout);
-  }, [booted, displayed, deleting, wordIdx]);
+  // Mouse
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    };
+    window.addEventListener("mousemove", fn);
+    return () => window.removeEventListener("mousemove", fn);
+  }, []);
+
+  // Crystal canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const ctx = canvas.getContext("2d")!;
+    const PHI = (1 + Math.sqrt(5)) / 2;
+
+    const baseVerts: [number, number, number][] = [
+      [-1, PHI, 0], [1, PHI, 0], [-1, -PHI, 0], [1, -PHI, 0],
+      [0, -1, PHI], [0, 1, PHI], [0, -1, -PHI], [0, 1, -PHI],
+      [PHI, 0, -1], [PHI, 0, 1], [-PHI, 0, -1], [-PHI, 0, 1],
+    ];
+    const norm = baseVerts.map(([x, y, z]) => {
+      const l = Math.sqrt(x * x + y * y + z * z);
+      return [x / l, y / l, z / l] as [number, number, number];
+    });
+    const faces = [
+      [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+      [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+      [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+      [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1],
+    ];
+
+    let time = 0;
+
+    const project = (v: [number, number, number], rx: number, ry: number) => {
+      let [x, y, z] = v;
+      let ny = y * Math.cos(rx) - z * Math.sin(rx); let nz = y * Math.sin(rx) + z * Math.cos(rx); y = ny; z = nz;
+      let nx = x * Math.cos(ry) + z * Math.sin(ry); nz = -x * Math.sin(ry) + z * Math.cos(ry); x = nx; z = nz;
+      const W = canvas.width; const H = canvas.height;
+      const fov = 3.5; const scale = (Math.min(W, H) * 0.34) * (fov / (fov + z));
+      return { sx: W * 0.5 + x * scale, sy: H * 0.5 + y * scale, z };
+    };
+
+    const draw = () => {
+      time += 0.011;
+      const W = canvas.width; const H = canvas.height;
+      const mx = mouseRef.current.x - 0.5;
+      const my = mouseRef.current.y - 0.5;
+      const rx = time * 0.28 + my * 0.9;
+      const ry = time * 0.45 + mx * 1.3;
+
+      ctx.clearRect(0, 0, W, H);
+
+      const proj = norm.map(v => project(v, rx, ry));
+
+      const sorted = faces
+        .map(f => ({ f, z: (proj[f[0]].z + proj[f[1]].z + proj[f[2]].z) / 3 }))
+        .sort((a, b) => a.z - b.z);
+
+      sorted.forEach(({ f, z }, fi) => {
+        const p0 = proj[f[0]]; const p1 = proj[f[1]]; const p2 = proj[f[2]];
+        const brightness = (z + 1) / 2;
+        const pulse = 0.5 + 0.5 * Math.sin(time * 2.2 + fi * 0.65);
+
+        ctx.beginPath();
+        ctx.moveTo(p0.sx, p0.sy); ctx.lineTo(p1.sx, p1.sy); ctx.lineTo(p2.sx, p2.sy);
+        ctx.closePath();
+
+        // Face fill
+        const alpha = 0.06 + brightness * 0.16 + pulse * 0.05;
+        const r = Math.floor(170 + brightness * 70);
+        const g = Math.floor(50 + brightness * 90 + pulse * 50);
+        const b = Math.floor(8 + brightness * 15);
+        ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+        ctx.fill();
+
+        // Edges
+        const ea = 0.12 + brightness * 0.45 + pulse * 0.18;
+        ctx.strokeStyle = fi % 4 === 0 ? `rgba(201,168,76,${ea})` : `rgba(210,55,25,${ea * 0.6})`;
+        ctx.lineWidth = 0.7 + brightness * 0.7;
+        ctx.stroke();
+      });
+
+      // Glow rings
+      [1.18, 1.3, 1.45].forEach((sc, i) => {
+        const r = Math.min(W, H) * 0.34 * sc;
+        const a = (0.07 - i * 0.02) * (0.6 + 0.4 * Math.sin(time + i * 1.2));
+        ctx.beginPath();
+        ctx.arc(W * 0.5, H * 0.5, r, 0, Math.PI * 2);
+        ctx.strokeStyle = i === 0 ? `rgba(201,168,76,${a})` : `rgba(210,55,25,${a * 0.5})`;
+        ctx.lineWidth = 0.8; ctx.stroke();
+      });
+
+      // Core glow
+      const cg = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.min(W, H) * 0.18);
+      cg.addColorStop(0, `rgba(201,168,76,${0.1 + 0.05 * Math.sin(time * 2)})`);
+      cg.addColorStop(1, "rgba(201,168,76,0)");
+      ctx.beginPath(); ctx.arc(W * 0.5, H * 0.5, Math.min(W, H) * 0.18, 0, Math.PI * 2);
+      ctx.fillStyle = cg; ctx.fill();
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => { cancelAnimationFrame(rafRef.current); window.removeEventListener("resize", resize); };
+  }, []);
+
+  const HUDPanel = ({ children, style }: { children: React.ReactNode; style: React.CSSProperties }) => (
+    <div className="hidden lg:block absolute z-20"
+      style={{
+        background: "rgba(4,7,16,0.88)", border: "1px solid rgba(201,168,76,0.28)",
+        borderRadius: 8, padding: "12px 14px", backdropFilter: "blur(10px)",
+        animation: "hudFloat ease-in-out infinite, hudIn 0.6s ease forwards",
+        ...style,
+      }}>
+      {children}
+    </div>
+  );
 
   return (
     <>
       <style>{`
-        @keyframes bootLine  { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes cursor    { 0%,100%{opacity:1} 50%{opacity:0} }
-        @keyframes orbitCW   { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-        @keyframes orbitCCW  { from{transform:rotate(0deg)} to{transform:rotate(-360deg)} }
-        @keyframes corePulse { 0%,100%{box-shadow:0 0 20px #c9a84c,0 0 50px rgba(201,168,76,0.3)} 50%{box-shadow:0 0 40px #c9a84c,0 0 90px rgba(201,168,76,0.5)} }
-        @keyframes fadeInDown{ from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes fadeInUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes zoomIn    { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
-        @keyframes progressBar { from{width:0%} to{width:100%} }
-
-        .boot-line  { animation: bootLine 0.3s ease forwards; }
-        .cursor-blink { animation: cursor 0.75s step-end infinite; }
-        .animate-fadeInDown { animation: fadeInDown 0.8s ease forwards; }
-        .animate-fadeInUp   { animation: fadeInUp 1s ease 0.2s both; }
-        .animate-zoomIn     { animation: zoomIn 1s ease both; }
-
-        .hud-corner-tl { position:absolute; top:40px; left:40px; width:30px; height:30px; border-top:1.5px solid rgba(201,168,76,0.4); border-left:1.5px solid rgba(201,168,76,0.4); }
-        .hud-corner-tr { position:absolute; top:40px; right:40px; width:30px; height:30px; border-top:1.5px solid rgba(201,168,76,0.4); border-right:1.5px solid rgba(201,168,76,0.4); }
-        .hud-corner-bl { position:absolute; bottom:80px; left:40px; width:30px; height:30px; border-bottom:1.5px solid rgba(201,168,76,0.4); border-left:1.5px solid rgba(201,168,76,0.4); }
-        .hud-corner-br { position:absolute; bottom:80px; right:40px; width:30px; height:30px; border-bottom:1.5px solid rgba(201,168,76,0.4); border-right:1.5px solid rgba(201,168,76,0.4); }
+        @keyframes fadeInDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeInUp  {from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)}}
+        @keyframes zoomIn    {from{opacity:0;transform:scale(0.95)}      to{opacity:1;transform:scale(1)}}
+        @keyframes cursor    {0%,100%{opacity:1}50%{opacity:0}}
+        @keyframes hudFloat  {0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+        @keyframes hudIn     {from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes dotPulse  {0%,100%{opacity:0.3}50%{opacity:1}}
+        @keyframes shimmer   {0%{background-position:-200% center}100%{background-position:200% center}}
+        @keyframes orbitCW   {from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        @keyframes glitch{
+          0%  {text-shadow:-3px 0 #c9a84c,3px 0 #dc1c1c;clip-path:inset(0 0 80% 0);transform:skewX(-4deg)}
+          20% {clip-path:inset(20% 0 60% 0);transform:skewX(4deg)}
+          40% {clip-path:inset(40% 0 40% 0);text-shadow:3px 0 #c9a84c,-3px 0 #dc1c1c}
+          60% {clip-path:inset(60% 0 20% 0);transform:skewX(-2deg)}
+          80% {clip-path:inset(80% 0 0 0);transform:skewX(0)}
+          100%{clip-path:inset(0);text-shadow:none;transform:none}
+        }
+        .cursor-blink{animation:cursor 0.75s step-end infinite}
+        .animate-fadeInDown{animation:fadeInDown 0.8s ease forwards}
+        .animate-fadeInUp{animation:fadeInUp 1s ease 0.2s both}
+        .animate-zoomIn{animation:zoomIn 1s ease both}
+        .glitch-active{animation:glitch 0.35s steps(1) forwards}
+        .gold-shimmer{
+          background:linear-gradient(90deg,#c9a84c,#f5e0a0,#c9a84c,#f5e0a0);
+          background-size:200% auto;
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+          animation:shimmer 3s linear infinite;
+        }
+        .hc{position:absolute;border-color:rgba(201,168,76,0.4);border-style:solid}
+        .hc-tl{top:18px;left:18px;width:26px;height:26px;border-width:1.5px 0 0 1.5px}
+        .hc-tr{top:18px;right:18px;width:26px;height:26px;border-width:1.5px 1.5px 0 0}
+        .hc-bl{bottom:60px;left:18px;width:26px;height:26px;border-width:0 0 1.5px 1.5px}
+        .hc-br{bottom:60px;right:18px;width:26px;height:26px;border-width:0 1.5px 1.5px 0}
+        .mono{font-family:'Share Tech Mono',monospace}
+        .orb{font-family:'Orbitron',monospace}
       `}</style>
 
-      {/* ── BOOT SCREEN ── */}
-      {!booted && (
-        <div className="fixed inset-0 z-[200] bg-[#050505] flex flex-col items-center justify-center p-8">
-          {/* Phoenix emblem */}
-          <div className="mb-8 relative">
-            <svg viewBox="0 0 80 80" className="w-20 h-20 mx-auto mb-4"
-              style={{ filter: "drop-shadow(0 0 16px #c9a84c)" }}>
-              <defs>
-                <linearGradient id="pg" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#f5e0a0" />
-                  <stop offset="100%" stopColor="#c9a84c" />
-                </linearGradient>
-              </defs>
-              <path d="M40 8C28 4 8 14 8 30c9-7 19-9 29-4C26 18 22 36 34 40c3-8 5-16 6-20z" fill="url(#pg)" />
-              <path d="M40 8C52 4 72 14 72 30c-9-7-19-9-29-4C54 18 58 36 46 40c-3-8-5-16-6-20z" fill="#1a3a7a" />
-              <ellipse cx="40" cy="50" rx="10" ry="13" fill="url(#pg)" />
-              <circle cx="40" cy="22" r="8" fill="url(#pg)" />
-              <path d="M32 64c-3 5-6 9-10 12 5-4 9-8 12-12z" fill="url(#pg)" opacity="0.8" />
-              <path d="M40 66c0 5-1 9-1 13 1-5 2-9 2-13z" fill="url(#pg)" opacity="0.9" />
-              <path d="M48 64c3 5 6 9 10 12-5-4-9-8-12-12z" fill="#1a3a7a" opacity="0.8" />
-            </svg>
-            <div style={{ fontFamily: "Orbitron,monospace", fontSize: 11, color: "#c9a84c", letterSpacing: 6, textAlign: "center" }}>
-              SCARLET TECH WIZARDS
-            </div>
-          </div>
+      <section className="relative flex items-center justify-start min-h-[100vh] bg-[#050505] overflow-hidden">
 
-          {/* Boot log */}
-          <div className="w-full max-w-md font-mono text-xs space-y-2 mb-6">
-            {bootLines.map((line, i) => (
-              <div key={i} className="boot-line" style={{ color: "rgba(201,168,76,0.7)" }}>
-                {line}
-              </div>
-            ))}
-            <span className="cursor-blink" style={{ color: "#c9a84c" }}>█</span>
-          </div>
-
-          {/* Progress bar */}
-          <div className="w-64 h-[2px] bg-[#c9a84c]/10 rounded overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#c9a84c] to-[#f5e0a0]"
-              style={{
-                width: `${(bootLines.length / BOOT_LINES.length) * 100}%`,
-                transition: "width 0.3s ease",
-                boxShadow: "0 0 8px #c9a84c",
-              }}
-            />
-          </div>
-          <div style={{ fontFamily: "Share Tech Mono,monospace", fontSize: 9, color: "rgba(201,168,76,0.3)", letterSpacing: 3, marginTop: 8 }}>
-            {Math.round((bootLines.length / BOOT_LINES.length) * 100)}%
-          </div>
-        </div>
-      )}
-
-      {/* ── HERO SECTION ── */}
-      <section className="relative flex items-center justify-start min-h-[130vh] py-24 bg-[#050505] overflow-hidden">
-
-        {/* Cinematic overlays */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0e1a]/30 via-transparent to-[#050505] z-0" />
-        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none" />
-
-        {/* Particles */}
-        <div className="absolute inset-0 z-0">
-          <ParticlesBg />
-        </div>
+        <div className="absolute inset-0 z-0"><ParticlesBg /></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0e1a]/20 via-transparent to-[#050505] z-0" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.04] pointer-events-none z-0" />
 
         {/* HUD corners */}
-        <div className="hud-corner-tl z-10" />
-        <div className="hud-corner-tr z-10" />
-        <div className="hud-corner-bl z-10" />
-        <div className="hud-corner-br z-10" />
-
-        {/* Horizontal HUD scan line */}
-        <div className="absolute top-[38px] left-0 right-0 h-[1px] z-10"
+        <div className="hc hc-tl z-20" /><div className="hc hc-tr z-20" />
+        <div className="hc hc-bl z-20" /><div className="hc hc-br z-20" />
+        <div className="absolute top-[17px] left-0 right-0 h-[1px] z-20"
           style={{ background: "linear-gradient(90deg,transparent,rgba(201,168,76,0.2),transparent)" }} />
 
-        {/* Arc reactor orb — right side background */}
-        <div className="absolute right-12 top-1/2 -translate-y-1/2 z-0 hidden xl:block" style={{ opacity: 0.12 }}>
-          <div className="relative w-72 h-72 flex items-center justify-center">
-            {[{ s: 288, d: "4s", dir: "CW" },
-            { s: 238, d: "7s", dir: "CCW" },
-            { s: 190, d: "5s", dir: "CW" },
-            { s: 142, d: "3s", dir: "CCW" }].map((r, i) => (
-              <div key={i} className="absolute rounded-full border border-[#c9a84c]"
-                style={{
-                  width: r.s, height: r.s,
-                  animation: `orbit${r.dir} ${r.d} linear infinite`,
-                  opacity: 0.5 - i * 0.08,
-                }}
-              />
-            ))}
-            {/* Hex shape */}
-            <div className="absolute w-20 h-20 border border-[#c9a84c]/60"
-              style={{ transform: "rotate(30deg)", borderRadius: 4 }} />
-            {/* Core */}
-            <div className="w-12 h-12 rounded-full z-10"
-              style={{
-                background: "radial-gradient(circle at 35% 35%,#f5e0a0,#c9a84c 50%,#6b5520)",
-                animation: "corePulse 2s ease-in-out infinite",
-              }}
-            />
-          </div>
-        </div>
+        {/* Crystal */}
+        <canvas ref={canvasRef} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 pointer-events-none"
+          style={{ width: "55vw", height: "92vh", maxWidth: 680 }} />
 
-        {/* ── CONTENT ── */}
-        <div className="z-10 text-left px-6 max-w-5xl md:ml-20">
+        {/* ── HUD PANELS ── */}
+        {/* Network */}
+        <HUDPanel style={{ top: "13%", right: "27%", minWidth: 165, animationDuration: "4s", animationDelay: "0s" }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="mono" style={{ fontSize: 8, color: "rgba(201,168,76,0.55)", letterSpacing: 2 }}>NETWORK METRICS</span>
+            <span className="flex items-center gap-1">
+              <span style={{
+                width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block",
+                boxShadow: "0 0 4px #22c55e", animation: "dotPulse 1.2s infinite"
+              }} />
+              <span className="mono" style={{ fontSize: 7, color: "#22c55e", letterSpacing: 1 }}>ACTIVE</span>
+            </span>
+          </div>
+          <div className="flex items-end gap-1 mb-2" style={{ height: 28 }}>
+            {[40, 65, 45, 80, 55, 90, hudData.net].map((h, i) => (
+              <div key={i} style={{
+                width: 6, height: `${h}%`, borderRadius: 2,
+                background: `rgba(201,168,76,${0.25 + i * 0.09})`, transition: "height 0.5s ease"
+              }} />
+            ))}
+          </div>
+          <span className="orb" style={{ fontSize: 15, color: "#c9a84c", fontWeight: 700 }}>{hudData.net}%</span>
+        </HUDPanel>
+
+        {/* Phase I */}
+        <HUDPanel style={{ top: "53%", right: "37%", minWidth: 158, animationDuration: "5s", animationDelay: "0.8s" }}>
+          <div className="mono mb-2" style={{ fontSize: 8, color: "rgba(201,168,76,0.5)", letterSpacing: 2 }}>PHASE I DEVELOPMENT</div>
+          <div className="flex items-center gap-2 mb-2">
+            <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{
+                height: "100%", width: `${hudData.phase}%`,
+                background: "linear-gradient(90deg,#c9a84c,#f5e0a0)", borderRadius: 2,
+                transition: "width 0.6s ease", boxShadow: "0 0 6px rgba(201,168,76,0.5)"
+              }} />
+            </div>
+            <span className="orb" style={{ fontSize: 10, color: "#c9a84c", fontWeight: 700 }}>{hudData.phase}%</span>
+          </div>
+          <span className="flex items-center gap-1">
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block", boxShadow: "0 0 4px #22c55e" }} />
+            <span className="mono" style={{ fontSize: 7, color: "#22c55e", letterSpacing: 1 }}>STABLE</span>
+          </span>
+        </HUDPanel>
+
+        {/* Phase II */}
+        <HUDPanel style={{ top: "17%", right: "5%", minWidth: 150, animationDuration: "3.5s", animationDelay: "0.4s" }}>
+          <div className="mono mb-2" style={{ fontSize: 8, color: "rgba(201,168,76,0.5)", letterSpacing: 2 }}>PHASE II DEPLOYMENT</div>
+          <div style={{
+            width: 36, height: 36, borderRadius: "50%", border: "1px solid rgba(201,168,76,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 8,
+            animation: "orbitCW 5s linear infinite"
+          }}>
+            <div style={{
+              width: 20, height: 20, borderRadius: "50%", border: "1px solid rgba(201,168,76,0.6)",
+              display: "flex", alignItems: "center", justifyContent: "center"
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a84c", boxShadow: "0 0 6px #c9a84c" }} />
+            </div>
+          </div>
+          <span className="flex items-center gap-1">
+            <span style={{
+              width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block",
+              boxShadow: "0 0 4px #22c55e", animation: "dotPulse 1s infinite"
+            }} />
+            <span className="mono" style={{ fontSize: 7, color: "#22c55e", letterSpacing: 1 }}>ACTIVE</span>
+          </span>
+        </HUDPanel>
+
+        {/* Performance */}
+        <HUDPanel style={{ top: "69%", right: "17%", minWidth: 148, animationDuration: "4.5s", animationDelay: "1.2s" }}>
+          <div className="mono mb-2" style={{ fontSize: 8, color: "rgba(201,168,76,0.5)", letterSpacing: 2 }}>PERFORMANCE</div>
+          <svg width="110" height="28" style={{ display: "block", marginBottom: 6 }}>
+            <polyline points={`0,22 16,18 32,20 48,10 64,14 80,6 96,${28 - hudData.perf * 0.22} 110,4`}
+              fill="none" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round" />
+            <polyline points={`0,22 16,18 32,20 48,10 64,14 80,6 96,${28 - hudData.perf * 0.22} 110,4 110,28 0,28`}
+              fill="rgba(201,168,76,0.07)" stroke="none" />
+          </svg>
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block", boxShadow: "0 0 4px #22c55e" }} />
+              <span className="mono" style={{ fontSize: 7, color: "#22c55e", letterSpacing: 1 }}>OPTIMAL</span>
+            </span>
+            <span className="orb" style={{ fontSize: 11, color: "#c9a84c", fontWeight: 700 }}>{hudData.perf}%</span>
+          </div>
+        </HUDPanel>
+
+        {/* ── HERO TEXT ── */}
+        <div className="relative z-20 text-left px-6 max-w-3xl md:ml-16 lg:ml-24 py-24">
 
           {/* Status ribbon */}
-          <div className="flex justify-start mb-12 animate-fadeInDown">
-            <div className="px-4 py-1.5 border border-[#c9a84c]/30 rounded-full bg-[#c9a84c]/5 backdrop-blur-md flex items-center gap-3">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#c9a84c] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#c9a84c]" />
-              </span>
-              <p className="text-[9px] font-black text-white uppercase tracking-[4px]">
+          <div className="flex justify-start mb-10 animate-fadeInDown">
+            <div style={{
+              padding: "6px 16px", border: "1px solid rgba(201,168,76,0.3)", borderRadius: 999,
+              background: "rgba(201,168,76,0.05)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", gap: 10
+            }}>
+              <span style={{
+                width: 7, height: 7, borderRadius: "50%", background: "#c9a84c",
+                boxShadow: "0 0 8px #c9a84c", animation: "dotPulse 1.2s infinite", display: "inline-block"
+              }} />
+              <span className="mono" style={{ fontSize: 9, color: "white", letterSpacing: 4, textTransform: "uppercase" }}>
                 Available for Select Q2 2026 Partnerships
-              </p>
+              </span>
             </div>
           </div>
 
-          {/* Headline with typewriter */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] text-white tracking-tighter animate-zoomIn">
-            WE ARCHITECT <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#c9a84c] via-[#f5e0a0] to-[#c9a84c] italic font-serif">
-              {booted ? displayed : "SOVEREIGNTY."}
-              <span className="cursor-blink not-italic" style={{ color: "#c9a84c" }}>|</span>
-            </span>
+          {/* WE ARCHITECT */}
+          <h1 className={`font-black leading-[0.85] tracking-tighter animate-zoomIn mb-2 ${glitch ? "glitch-active" : ""}`}
+            style={{ fontSize: "clamp(52px,8vw,92px)" }}>
+            <span className="gold-shimmer">WE ARCHITECT</span>
           </h1>
 
-          {/* Subtext */}
-          <p className="mt-8 text-lg md:text-xl text-gray-400 max-w-2xl font-light leading-relaxed animate-fadeInUp">
+          {/* Typewriter */}
+          <h2 className="font-black leading-[1] tracking-tighter animate-zoomIn mb-5 text-white"
+            style={{ fontSize: "clamp(26px,4.2vw,54px)" }}>
+            {displayed}<span className="cursor-blink" style={{ color: "#c9a84c" }}>|</span>
+          </h2>
+
+          {/* Tag */}
+          <div className="mb-8">
+            <span className="mono" style={{
+              fontSize: 10, color: "rgba(201,168,76,0.5)", letterSpacing: 4,
+              textTransform: "uppercase", border: "1px solid rgba(201,168,76,0.15)", padding: "4px 12px", borderRadius: 3
+            }}>
+              [ SYSTEMS ARCHITECTURE &amp; SCALING SOLUTIONS ]
+            </span>
+          </div>
+
+          <p className="text-gray-400 text-lg max-w-xl font-light leading-relaxed mb-10 animate-fadeInUp">
             At <span className="text-white font-bold">Scarlet Tech Wizards</span>, we don't just weave webs.
             We engineer digital artifacts that command authority and work while you sleep.
           </p>
 
           {/* CTAs */}
-          <div className="mt-12 flex flex-col sm:flex-row items-start gap-4 justify-start animate-fadeInUp">
-            <a href="/archives"
-              className="px-8 py-5 border border-[#c9a84c]/40 bg-[#c9a84c]/8 text-[#c9a84c] font-black text-[10px] tracking-[4px] uppercase rounded-xl hover:bg-[#c9a84c] hover:text-black transition-all shadow-[0_0_24px_rgba(201,168,76,0.15)]">
-              The Archives
+          <div className="flex flex-wrap gap-4 animate-fadeInUp">
+            <a href="#contact" className="inline-flex items-center gap-3 font-black text-[11px] tracking-[3px] uppercase px-8 py-4 rounded-xl transition-all duration-300"
+              style={{ background: "#c9a84c", color: "black", boxShadow: "0 0 24px rgba(201,168,76,0.3)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "white" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#c9a84c" }}>
+              ⚡ GET YOUR ARCHITECT
+              <span style={{ fontSize: 9, opacity: 0.7 }}>(FREE CONSULTATION)</span>
             </a>
-            <a href="/#services"
-              className="px-8 py-5 border border-white/10 text-white font-black text-[10px] tracking-[4px] uppercase rounded-xl hover:bg-white hover:text-black transition-all">
-              Our Spells
+            <a href="#services" className="inline-flex items-center gap-3 font-black text-[11px] tracking-[3px] uppercase px-8 py-4 rounded-xl transition-all duration-300 text-[#c9a84c]"
+              style={{ border: "1px solid rgba(201,168,76,0.35)", background: "rgba(201,168,76,0.05)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(201,168,76,0.15)" }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(201,168,76,0.05)" }}>
+              EXPLORE OUR SPELLS →
             </a>
           </div>
 
           {/* Stat strip */}
-          <div className="mt-16 flex gap-12 animate-fadeInUp">
+          <div className="flex gap-10 mt-14 animate-fadeInUp">
             {[["5+", "Council Members"], ["50+", "Artifacts Built"], ["100%", "Client Loyalty"]].map(([n, l]) => (
               <div key={l}>
-                <div style={{
-                  fontFamily: "Orbitron,monospace", fontSize: 22, color: "#c9a84c", fontWeight: 900,
+                <div className="orb" style={{
+                  fontSize: 20, color: "#c9a84c", fontWeight: 900,
                   textShadow: "0 0 12px rgba(201,168,76,0.4)"
                 }}>{n}</div>
-                <div className="text-[9px] text-gray-500 uppercase tracking-[2px] mt-1 font-mono">{l}</div>
+                <div className="mono" style={{ fontSize: 8, color: "rgba(255,255,255,0.3)", letterSpacing: 2, marginTop: 4, textTransform: "uppercase" }}>{l}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Scroll cue */}
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 animate-bounce opacity-20 hidden md:block">
-          <div className="w-[1px] h-24 bg-gradient-to-b from-[#c9a84c] to-transparent" />
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-20 hidden md:block z-20">
+          <div style={{ width: 1, height: 80, background: "linear-gradient(to bottom,#c9a84c,transparent)" }} />
         </div>
 
-        {/* Floating artifacts btn */}
-        <div className={`fixed bottom-8 right-8 z-[60] transition-all duration-500 transform ${showArtifactsButton
-            ? "translate-y-0 opacity-100 scale-100"
-            : "translate-y-20 opacity-0 scale-90 pointer-events-none"
-          }`}>
-          <a href="/archives"
-            className="group relative flex items-center gap-4 bg-[#c9a84c] text-black p-2 pr-6 rounded-full font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-white transition-all"
-            style={{ boxShadow: "0 0 30px rgba(201,168,76,0.4)" }}>
-            <div className="h-10 w-10 bg-black rounded-full flex items-center justify-center text-[#c9a84c] group-hover:text-black group-hover:bg-[#c9a84c] transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
-                <path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48ZM208,192H48V64H208Z" />
-              </svg>
-            </div>
+        {/* Floating btn */}
+        <div className={`fixed bottom-8 right-8 z-[60] transition-all duration-500 ${showArtBtn ? "translate-y-0 opacity-100 scale-100" : "translate-y-20 opacity-0 scale-90 pointer-events-none"}`}>
+          <a href="/archives" className="flex items-center gap-4 p-2 pr-6 rounded-full font-black text-[10px] uppercase tracking-widest transition-all"
+            style={{ background: "#c9a84c", color: "black", boxShadow: "0 0 30px rgba(201,168,76,0.4)" }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "white"}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "#c9a84c"}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "black", display: "flex", alignItems: "center", justifyContent: "center", color: "#c9a84c" }}>⬡</div>
             View All Artifacts
           </a>
         </div>
